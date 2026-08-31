@@ -1,0 +1,46 @@
+1. TypeScript + Jest (Substrate/Polkadot test framework)  
+2.  
+- Identify existing ledger storage key encoding logic in the codebase  
+- Add unit tests to assert correct storage key generation for various ledger types (Staking, Vesting, etc.)  
+- Verify key encodings match expected SCALE-encoded prefixes and account IDs  
+- Include edge cases (empty accounts, different network prefixes)  
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { StorageKey } from '@polkadot/types';
+import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { ledgerStorageKey } from '../src/ledger'; // Adjust path as needed
+
+describe('Ledger Storage Key Encodings', () => {
+  beforeAll(async () => {
+    await cryptoWaitReady();
+  });
+
+  it('generates correct storage key for staking ledger', () => {
+    const accountId = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+    const key = ledgerStorageKey('Staking', accountId);
+    
+    expect(key).toBeInstanceOf(StorageKey);
+    expect(key.toString()).toBe('0x0d057260b5b5f52c8d7e7a1f5e7c3d8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6');
+    // Note: The above hex is illustrative; actual implementation will compute real SCALE-encoded key
+  });
+
+  it('handles vesting ledger correctly', () => {
+    const accountId = '5FHneW46xGXgs5MwHfXkJjX5Lg9Ft25lNhyieYRrRjXoD2iY';
+    const key = ledgerStorageKey('Vesting', accountId);
+    
+    expect(key.method).toBe('Vesting');
+    expect(key.args.length).toBe(1);
+    expect(key.args[0].toString()).toBe(accountId);
+  });
+
+  it('produces deterministic keys for same inputs', () => {
+    const accountId = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
+    const key1 = ledgerStorageKey('Staking', accountId);
+    const key2 = ledgerStorageKey('Staking', accountId);
+    
+    expect(key1.toString()).toBe(key2.toString());
+  });
+
+  it('handles empty account ID (0x00...00)', () => {
+    const accountId = '0x0000000000000000000000000000000
